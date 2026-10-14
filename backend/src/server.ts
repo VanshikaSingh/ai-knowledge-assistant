@@ -7,6 +7,7 @@ import { PDFParse } from "pdf-parse";
 import { chunkText } from "./chunkText.js";
 import { generateEmbeddings } from "./embedding.js";
 import { addChunks, getAllChunks } from "./stores.js";
+import { generateAnswer } from "./answer.js";
 
 import { searchChunks } from "./search.js";
 
@@ -133,6 +134,51 @@ app.use(
     });
   }
 );
+
+app.post("/ask", async (req, res) => {
+  try {
+    const { query } = req.body;
+
+    if (!query || typeof query !== "string" || !query.trim()) {
+      return res.status(400).json({
+        error: "A valid query is required",
+      });
+    }
+
+    const [queryEmbedding] = await generateEmbeddings([query.trim()]);
+
+    const results = searchChunks(
+      queryEmbedding,
+      getAllChunks(),
+      3,
+    );
+
+    if (results.length === 0) {
+      return res.json({
+        answer: "No matching document passages were found.",
+        sources: [],
+      });
+    }
+
+    const answer = await generateAnswer(query.trim(), results);
+
+    return res.json({
+      answer,
+      sources: results.map((result) => ({
+        filename: result.filename,
+        content: result.content,
+        similarity: result.similarity,
+      })),
+    });
+  } catch (error) {
+    console.error("Ask endpoint error:", error);
+
+    return res.status(500).json({
+      error: "Failed to generate an answer.",
+    });
+  }
+});
+
 app.post("/search", async (req, res) => {
   try {
     const { query } = req.body;
