@@ -23,11 +23,23 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_QUERY_LENGTH = 1000;
 const MIN_SIMILARITY = 0.3;
 
+
+
+const allowedOrigins: string[] = [
+  "http://localhost:5173",
+];
+
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: allowedOrigins,
   }),
 );
+
+
 app.use(express.json({ limit: "1mb" }));
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
