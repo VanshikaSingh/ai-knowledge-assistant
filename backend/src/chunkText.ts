@@ -1,3 +1,4 @@
+//controls how uploaded documents are split before their text is embedded and stored.
 export type TextChunk = {
   index: number;
   content: string;

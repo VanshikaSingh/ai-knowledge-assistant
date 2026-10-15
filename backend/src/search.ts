@@ -1,4 +1,6 @@
 import type { StoredChunk } from "./stores.js";
+//rank document chunks by how similar they are to the user's question - 
+// calculates the cosine similarity between the question embedding and each chunk embedding.
 
 function cosineSimilarity(
   vectorA: number[],

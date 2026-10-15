@@ -152,7 +152,26 @@ app.post("/ask", async (req, res) => {
       getAllChunks(),
       3,
     );
+    const MIN_SIMILARITY = 0.3;
 
+const relevantResults = results.filter(
+  (result) => result.similarity >= MIN_SIMILARITY
+);
+
+if (relevantResults.length === 0) {
+  return res.json({
+    answer:
+      "I couldn't find relevant information in your uploaded documents to answer that question.",
+    sources: [],
+  });
+}
+console.log(
+  "Retrieval scores:",
+  results.map((result) => ({
+    filename: result.filename,
+    similarity: result.similarity,
+  }))
+);
     if (results.length === 0) {
       return res.json({
         answer: "No matching document passages were found.",
@@ -160,7 +179,7 @@ app.post("/ask", async (req, res) => {
       });
     }
 
-    const answer = await generateAnswer(query.trim(), results);
+    const answer = await generateAnswer(query.trim(), relevantResults);
 
     return res.json({
       answer,

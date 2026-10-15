@@ -138,7 +138,7 @@ function App() {
     setSearchError("");
     setAnswer("");
     setSources([]);
-
+console.log(query, "query");
     try {
       const response = await fetch(`${API_URL}/ask`, {
         method: "POST",
@@ -158,7 +158,7 @@ function App() {
 
       setAnswer(data.answer ?? "");
       setSources(data.sources ?? []);
-
+console.log(data, "data");
       if (!data.answer) {
         setSearchError(
           "The server returned no answer. Check the /ask endpoint response.",
@@ -389,7 +389,7 @@ function App() {
               className="question-form"
               onSubmit={(event) => {
                 event.preventDefault();
-                void handleSearch();
+                 handleSearch();
               }}
             >
               <span className="search-icon">⌕</span>
