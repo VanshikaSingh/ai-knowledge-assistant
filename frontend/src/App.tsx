@@ -1,12 +1,16 @@
 
-import { useState, type ChangeEvent, type DragEvent } from "react";
+import {
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+} from "react";
+
 import "./App.css";
 
 type DocumentItem = {
-  id: number;
-  name: string;
-  size: string;
-  chunks?: number;
+  filename: string;
+  totalChunks: number;
 };
 
 type UploadResponse = {
@@ -26,11 +30,19 @@ type SearchResult = {
 
 type AskResponse = {
   answer?: string;
+  citations?: number[];
   sources?: SearchResult[];
   error?: string;
 };
 
-const API_URL = "http://localhost:3000";
+type DocumentsResponse = {
+  documents: DocumentItem[];
+  error?: string;
+};
+
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:3000"
+).replace(/\/$/, "");
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) {
@@ -49,9 +61,30 @@ function App() {
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+  const [citations, setCitations] = useState<number[]>([]);
   const [sources, setSources] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+
+  // Load documents persisted in SQLite when the page opens.
+  useEffect(() => {
+    async function loadDocuments() {
+      try {
+        const response = await fetch(`${API_URL}/documents`);
+
+        if (!response.ok) {
+          throw new Error("Failed to load documents");
+        }
+
+        const data = (await response.json()) as DocumentsResponse;
+        setDocuments(data.documents ?? []);
+      } catch (err) {
+        console.error("Failed to load documents:", err);
+      }
+    }
+
+    void loadDocuments();
+  }, []);
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -101,16 +134,6 @@ function App() {
         );
       }
 
-      setDocuments((current) => [
-        ...current,
-        {
-          id: Date.now(),
-          name: selectedFile.name,
-          size: formatFileSize(selectedFile.size),
-          chunks: result.totalChunks,
-        },
-      ]);
-
       setSuccess(
         typeof result.totalChunks === "number"
           ? `Document processed successfully. ${result.totalChunks} chunks created.`
@@ -118,6 +141,25 @@ function App() {
       );
 
       setSelectedFile(null);
+
+      // Refresh the document list from the database.
+      try {
+        const documentsResponse = await fetch(`${API_URL}/documents`);
+
+        if (!documentsResponse.ok) {
+          throw new Error("Failed to refresh document list");
+        }
+
+        const documentsData =
+          (await documentsResponse.json()) as DocumentsResponse;
+
+        setDocuments(documentsData.documents ?? []);
+      } catch (refreshError) {
+        console.error(
+          "Document uploaded, but the list could not be refreshed:",
+          refreshError,
+        );
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -137,8 +179,9 @@ function App() {
     setIsSearching(true);
     setSearchError("");
     setAnswer("");
+    setCitations([]);
     setSources([]);
-console.log(query, "query");
+
     try {
       const response = await fetch(`${API_URL}/ask`, {
         method: "POST",
@@ -157,8 +200,9 @@ console.log(query, "query");
       }
 
       setAnswer(data.answer ?? "");
+      setCitations(data.citations ?? []);
       setSources(data.sources ?? []);
-console.log(data, "data");
+
       if (!data.answer) {
         setSearchError(
           "The server returned no answer. Check the /ask endpoint response.",
@@ -205,11 +249,11 @@ console.log(data, "data");
 
         <p className="nav-label">WORKSPACE</p>
 
-        <button className="nav-item active">
+        <button className="nav-item active" type="button">
           <span>⌂</span> Knowledge base
         </button>
 
-        <button className="nav-item" disabled>
+        <button className="nav-item" disabled type="button">
           <span>◷</span> Recent questions
           <span className="coming-soon">Soon</span>
         </button>
@@ -242,16 +286,17 @@ console.log(data, "data");
             <div className="eyebrow">
               YOUR PERSONAL KNOWLEDGE BASE
             </div>
-           
-              <h1>
-                Your documents,
-                <br />
-                made searchable.
-              </h1>
-              <p>
-                Upload your documents, find relevant information, and get answers
-                grounded in your content.
-              </p>
+
+            <h1>
+              Your documents,
+              <br />
+              made searchable.
+            </h1>
+
+            <p>
+              Upload your documents, find relevant information, and get
+              answers grounded in your content.
+            </p>
           </div>
 
           <section className="upload-section">
@@ -285,9 +330,7 @@ console.log(data, "data");
                 />
               </label>
 
-              <span className="file-hint">
-                PDF or TXT
-              </span>
+              <span className="file-hint">PDF or TXT</span>
             </div>
 
             {selectedFile && (
@@ -303,6 +346,7 @@ console.log(data, "data");
                   className="remove-button"
                   onClick={() => setSelectedFile(null)}
                   aria-label="Remove selected file"
+                  type="button"
                 >
                   ×
                 </button>
@@ -311,6 +355,7 @@ console.log(data, "data");
                   className="primary-button"
                   onClick={handleUpload}
                   disabled={isUploading}
+                  type="button"
                 >
                   {isUploading ? "Processing..." : "Upload document"}
                 </button>
@@ -318,11 +363,15 @@ console.log(data, "data");
             )}
 
             {error && (
-              <p className="feedback error">{error}</p>
+              <p className="feedback error" role="alert">
+                {error}
+              </p>
             )}
 
             {success && (
-              <p className="feedback success">{success}</p>
+              <p className="feedback success" role="status">
+                {success}
+              </p>
             )}
           </section>
 
@@ -330,7 +379,7 @@ console.log(data, "data");
             <div className="section-heading">
               <div>
                 <h2>Your documents</h2>
-                <p>Documents uploaded during this session.</p>
+                <p>Documents added to your knowledge base.</p>
               </div>
 
               <span className="count-badge">
@@ -350,17 +399,15 @@ console.log(data, "data");
             ) : (
               <div className="document-list">
                 {documents.map((document) => (
-                  <div className="document-row" key={document.id}>
+                  <div
+                    className="document-row"
+                    key={document.filename}
+                  >
                     <div className="file-icon">DOC</div>
 
                     <div className="file-details">
-                      <strong>{document.name}</strong>
-                      <span>
-                        {document.size}
-                        {typeof document.chunks === "number"
-                          ? ` · ${document.chunks} chunks`
-                          : ""}
-                      </span>
+                      <strong>{document.filename}</strong>
+                      <span>{document.totalChunks} chunks</span>
                     </div>
 
                     <span className="processed-badge">
@@ -389,7 +436,7 @@ console.log(data, "data");
               className="question-form"
               onSubmit={(event) => {
                 event.preventDefault();
-                 handleSearch();
+                void handleSearch();
               }}
             >
               <span className="search-icon">⌕</span>
@@ -399,6 +446,7 @@ console.log(data, "data");
                 onChange={(event) => setQuestion(event.target.value)}
                 placeholder="What does this document say about...?"
                 aria-label="Question about your documents"
+                maxLength={1000}
               />
 
               <button
@@ -411,13 +459,15 @@ console.log(data, "data");
             </form>
 
             {isSearching && (
-              <p className="question-hint">
+              <p className="question-hint" role="status">
                 Searching your documents and generating an answer...
               </p>
             )}
 
             {searchError && (
-              <p className="feedback error">{searchError}</p>
+              <p className="feedback error" role="alert">
+                {searchError}
+              </p>
             )}
 
             {answer && (
@@ -426,6 +476,20 @@ console.log(data, "data");
 
                 <article className="search-result">
                   <p>{answer}</p>
+
+                  {citations.length > 0 && (
+                    <p className="answer-citations">
+                      Sources:{" "}
+                      {citations.map((number, index) => (
+                        <span key={number}>
+                          {index > 0 ? ", " : ""}
+                          <a href={`#source-${number}`}>
+                            [{number}]
+                          </a>
+                        </span>
+                      ))}
+                    </p>
+                  )}
                 </article>
 
                 {sources.length > 0 && (
@@ -437,18 +501,19 @@ console.log(data, "data");
                     <div className="source-list">
                       {sources.map((source, index) => (
                         <article
+                          id={`source-${index + 1}`}
                           className="search-result"
-                          key={source.id ?? index}
+                          key={source.id ?? `${source.filename}-${index}`}
                         >
                           <div className="search-result-header">
                             <strong>
-                              {source.filename ??
-                                `Source ${index + 1}`}
+                              Source {index + 1}:{" "}
+                              {source.filename ?? "Unknown document"}
                             </strong>
 
                             {typeof source.similarity === "number" && (
                               <span className="result-score">
-                                Similarity:{" "}
+                                Relevance:{" "}
                                 {(source.similarity * 100).toFixed(1)}%
                               </span>
                             )}

@@ -8,12 +8,16 @@ import path from "path";
 import { PDFParse } from "pdf-parse";
 import { chunkText } from "./chunkText.js";
 import { generateEmbeddings } from "./embedding.js";
-import { addChunks, getAllChunks } from "./stores.js";
+import {
+  addChunks,
+  getAllChunks,
+  getAllDocuments,
+} from "./stores.js";
 import { generateAnswer } from "./answer.js";
 import { searchChunks } from "./search.js";
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_QUERY_LENGTH = 1000;
@@ -68,6 +72,20 @@ app.get("/health", (req, res) => {
   res.json({
     status: "ok",
   });
+});
+
+app.get("/documents", (req, res) => {
+  try {
+    const documents = getAllDocuments();
+
+    return res.json({ documents });
+  } catch (error) {
+    console.error("Documents endpoint error:", error);
+
+    return res.status(500).json({
+      error: "Failed to retrieve documents",
+    });
+  }
 });
 
 app.post(
@@ -215,16 +233,22 @@ app.post("/ask", async (req, res) => {
       });
     }
 
-    const answer = await generateAnswer(normalizedQuery, relevantResults);
 
-    return res.json({
-      answer,
-      sources: relevantResults.map((result) => ({
-        filename: result.filename,
-        content: result.content,
-        similarity: result.similarity,
-      })),
-    });
+const generated = await generateAnswer(
+  normalizedQuery,
+  relevantResults,
+);
+
+return res.json({
+  answer: generated.answer,
+  citations: generated.citations,
+  sources: relevantResults.map((result) => ({
+    filename: result.filename,
+    content: result.content,
+    similarity: result.similarity,
+  })),
+});
+
   } catch (error) {
     console.error("Ask endpoint error:", error);
 
@@ -317,6 +341,10 @@ app.use(
   },
 );
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+export default app;
+
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}

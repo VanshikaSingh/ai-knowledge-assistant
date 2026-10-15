@@ -11,7 +11,18 @@ export type StoredChunk = {
 };
 
 // The database file is created in the backend directory.
-const db = new Database(path.resolve(process.cwd(), "knowledge.db"));
+const dbPath =
+  process.env.NODE_ENV === "test"
+    ? "test-knowledge.db"
+    : "knowledge.db";
+
+
+const databasePath =
+  process.env.DATABASE_PATH ??
+  path.resolve(process.cwd(), "knowledge.db");
+
+const db = new Database(databasePath);
+
 
 db.pragma("journal_mode = WAL");
 
@@ -79,4 +90,16 @@ export function getAllChunks(): StoredChunk[] {
     content: row.content,
     embedding: JSON.parse(row.embedding) as number[],
   }));
+}
+
+
+export function getAllDocuments() {
+  return db
+    .prepare(`
+      SELECT filename, COUNT(*) AS totalChunks
+      FROM chunks
+      GROUP BY filename
+      ORDER BY filename
+    `)
+    .all() as { filename: string; totalChunks: number }[];
 }

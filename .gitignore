@@ -15,3 +15,17 @@ backend/dist/
 
 # OS files
 .DS_Store
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# SQLite databases
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# Build output
+backend/dist/
+backend/node_modules/
