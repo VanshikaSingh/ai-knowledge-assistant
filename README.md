@@ -216,8 +216,3 @@ The evaluation script checks a small set of answerable and unanswerable question
 - Add authentication, per-user document isolation, and usage limits.
 - Improve observability, error reporting, and deployment monitoring.
 
-## Author
-
-**Vanshika Singh**
-
-[GitHub](https://github.com/VanshikaSingh/ai-knowledge-assistant)
