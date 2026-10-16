@@ -4,6 +4,16 @@ A full-stack Retrieval-Augmented Generation (RAG) application that lets users up
 
 **Live Demo:** https://ai-knowledge-assistant-xxwy.onrender.com
 
+## Application Screenshots
+
+### Document Upload and Knowledge Base
+
+![Document upload and knowledge base](docs/images/documentUpload.png)
+
+### Answer Generation and Source Citations
+
+![Answer with source citations](docs/images/answer-with-citation.png)
+
 ## Features
 
 - **Document ingestion:** Upload PDF and TXT files.
