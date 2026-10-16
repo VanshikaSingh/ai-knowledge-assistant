@@ -8,11 +8,11 @@ A full-stack Retrieval-Augmented Generation (RAG) application that lets users up
 
 ### Document Upload and Knowledge Base
 
-![Document upload and knowledge base](docs/images/documentUpload.png)
+<img src="docs/documentUpload.png" alt="Document upload and knowledge base" width="800">
 
 ### Answer Generation and Source Citations
 
-![Answer with source citations](docs/images/answer-with-citation.png)
+<img src="docs/answer-with-citation.png" alt="AI-generated answer with source citations" width="800">
 
 ## Features
 
