@@ -4,8 +4,6 @@ A full-stack Retrieval-Augmented Generation (RAG) application that lets users up
 
 **Live Demo:** https://ai-knowledge-assistant-xxwy.onrender.com
 
-**Backend API:** https://ai-knowledge-assistant-api-sbib.onrender.com
-
 ## Features
 
 - **Document ingestion:** Upload PDF and TXT files.
